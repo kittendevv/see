@@ -7,3 +7,6 @@ edition = "2024"
 winit = "0.30"
 softbuffer = "0.4"
 image = "0.25.10"
+dirs = "7.0.0"
+serde = { version = "1.0.229", features = ["derive"] }
+toml = "1.2.2"

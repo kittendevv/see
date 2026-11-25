@@ -1,3 +1,4 @@
+use std::fs;
 use std::num::NonZeroU32;
 use std::rc::Rc;
 
@@ -8,10 +9,33 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{Window, WindowId};
 
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct Config {
+    background_color: String,
+}
+
 struct App {
     window: Option<Rc<Window>>,
     surface: Option<Surface<Rc<Window>, Rc<Window>>>,
     img: RgbaImage,
+    background: u32,
+}
+
+const DEFAULT_CONFIG: &str = r#"background_color = "181818"
+"#;
+
+fn load_config() -> Config {
+    let path = dirs::config_dir().unwrap().join("see").join("config.toml");
+
+    if !path.exists() {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, DEFAULT_CONFIG).unwrap();
+    }
+
+    let text = fs::read_to_string(&path).unwrap();
+    toml::from_str(&text).unwrap()
 }
 
 impl ApplicationHandler for App {
@@ -69,7 +93,7 @@ impl ApplicationHandler for App {
                         let [r, g, b, _a] = self.img.get_pixel(src_x, src_y).0;
                         ((r as u32) << 16) | ((g as u32) << 8) | (b as u32)
                     } else {
-                        0x00181818
+                        self.background
                     };
                 }
 
@@ -97,10 +121,14 @@ fn main() {
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Wait);
 
+    let config = load_config();
+    let background = u32::from_str_radix(&config.background_color, 16).unwrap();
+
     let mut app = App {
         window: None,
         surface: None,
         img,
+        background,
     };
     event_loop.run_app(&mut app).unwrap();
 }
